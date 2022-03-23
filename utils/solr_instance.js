@@ -5,14 +5,7 @@ class SolrInstance {
   #client
 
   constructor(baseURL) {
-    if (process.env.SOCK5_PROXY) {
-      const [host, port] = process.env.SOCK5_PROXY.split(':')
-      const SocksAgent = require('axios-socks5-agent');
-      const { httpAgent, httpsAgent } = SocksAgent({ agentOptions: { keepAlive: true, }, host, port: Number(port) });
-      this.client = axios.create({ baseURL, httpAgent, httpsAgent });
-    } else {
-      this.client = axios.create({ baseURL });
-    }
+    this.#client = axios.create({ baseURL });
   }
 
   async deleteDeadReplicas(collection, shard) {
@@ -22,7 +15,7 @@ class SolrInstance {
     const replicas = collectionState.shards[shard].replicas;
     for (const replica in replicas) {
       if (replicas[replica].state == 'down') {
-        console.info(`Deleting dead replica ${collectipon}.${shard}.${replica}`);
+        console.info(`Deleting dead replica ${collection}.${shard}.${replica}`);
         await this.#request('DELETEREPLICA', { collection, shard, replica });
       }
     }
@@ -49,7 +42,7 @@ class SolrInstance {
 
   async #request(action, params) {
     const query = new URLSearchParams(params).toString();
-    const response = await this.client.get(`/admin/collections?action=${action}&${query}`);
+    const response = await this.#client.get(`/admin/collections?action=${action}&${query}`);
     return response.data;
   }
 }
